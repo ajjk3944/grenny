@@ -1,0 +1,16 @@
+import api from './api';
+
+export const getProfile = async () => {
+  const response = await api.get('/profile');
+  return response.data;
+};
+
+export const updateProfile = async (data: {
+  name?: string;
+  district?: string;
+  division?: string;
+  nidNumber?: string;
+}) => {
+  const response = await api.put('/profile', data);
+  return response.data;
+};

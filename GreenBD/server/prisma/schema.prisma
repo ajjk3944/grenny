@@ -1,0 +1,203 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String       @id @default(uuid())
+  role             Role         @default(USER)
+  name             String
+  phone            String?      @unique
+  email            String?      @unique
+  avatar           String?
+  district         String?
+  division         String?
+  nidNumber        String?
+  nidLinked        Boolean      @default(false)
+  password         String?
+  securityId       String?      @unique
+  assignedArea     String?
+  banned           Boolean      @default(false)
+  banExpiry        DateTime?
+  redMarked        Boolean      @default(false)
+  totalPoints      Int          @default(0)
+  grade            String       @default("D")
+  streak           Int          @default(0)
+  lastActive       DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  
+  submissions      Submission[]
+  sentMessages     Message[]    @relation("sender")
+  notices          Notice[]     @relation("recipients")
+  redemptions      Redemption[]
+  pointsHistory    PointsHistory[]
+}
+
+model Submission {
+  id                 String        @id @default(uuid())
+  userId             String
+  user               User          @relation(fields: [userId], references: [id])
+  mediaUrls          String[]
+  thumbnailUrls      String[]
+  mediaType          MediaType
+  category           String
+  summary            String
+  latitude           Float
+  longitude          Float
+  address            String?
+  aiStatus           ReviewStatus  @default(PENDING)
+  aiConfidence       Float?
+  aiDetails          String?
+  aiReviewedAt       DateTime?
+  manualStatus       ReviewStatus?
+  manualReviewerId   String?
+  manualReason       String?
+  manualReviewedAt   DateTime?
+  points             Int           @default(0)
+  bonusPoints        Int           @default(0)
+  imageHash          String?
+  metadata           String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  
+  @@index([userId])
+  @@index([aiStatus])
+  @@index([createdAt])
+}
+
+model ActivityCategory {
+  id          String   @id @default(uuid())
+  nameBn      String
+  nameEn      String
+  icon        String
+  basePoints  Int
+  active      Boolean  @default(true)
+  area        String?
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Benefit {
+  id          String       @id @default(uuid())
+  titleBn     String
+  titleEn     String
+  description String?
+  points      Int
+  minGrade    String
+  category    String
+  active      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  
+  redemptions Redemption[]
+}
+
+model Redemption {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  benefitId   String
+  benefit     Benefit  @relation(fields: [benefitId], references: [id])
+  status      String   @default("PENDING")
+  redeemedAt  DateTime @default(now())
+  
+  @@index([userId])
+}
+
+model Message {
+  id                   String         @id @default(uuid())
+  senderId             String
+  sender               User           @relation("sender", fields: [senderId], references: [id])
+  subject              String
+  body                 String
+  type                 MessageType
+  linkedSubmissionId   String?
+  status               MessageStatus  @default(UNREAD)
+  adminReply           String?
+  createdAt            DateTime       @default(now())
+  resolvedAt           DateTime?
+  
+  @@index([senderId])
+  @@index([status])
+}
+
+model Notice {
+  id                String         @id @default(uuid())
+  title             String
+  body              String
+  priority          Priority       @default(NORMAL)
+  recipientType     RecipientType
+  recipientIds      String[]
+  recipientDistrict String?
+  sentAt            DateTime       @default(now())
+  
+  recipients        User[]         @relation("recipients")
+}
+
+model PointsHistory {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  points        Int
+  reason        String
+  submissionId  String?
+  createdAt     DateTime @default(now())
+  
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model AppConfig {
+  id    String @id @default(uuid())
+  key   String @unique
+  value String
+}
+
+enum Role {
+  ADMIN
+  SECURITY
+  USER
+}
+
+enum MediaType {
+  PHOTO
+  VIDEO
+}
+
+enum ReviewStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  FLAGGED
+}
+
+enum MessageType {
+  GENERAL
+  DELETE_REQUEST
+  REPORT
+}
+
+enum MessageStatus {
+  UNREAD
+  READ
+  RESOLVED
+}
+
+enum Priority {
+  NORMAL
+  IMPORTANT
+  URGENT
+}
+
+enum RecipientType {
+  ALL_USERS
+  ALL_SECURITY
+  SPECIFIC
+  DISTRICT
+}
